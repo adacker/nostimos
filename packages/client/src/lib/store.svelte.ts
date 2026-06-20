@@ -23,7 +23,15 @@ import type {
   DishCategoryCreate,
   DayLabelCreate,
 } from '@nostimos/shared';
-import { api, ApiError } from './api.js';
+import { api as remoteApi, ApiError, type Backend } from './api.js';
+import { localApi } from './local-store.js';
+
+// Build-time backend selection. `VITE_BACKEND=local` (used for the static
+// here.now build) swaps the REST client for a localStorage implementation so the
+// app works standalone with no server. Defaults to the remote sync backend.
+export const BACKEND_MODE: 'local' | 'remote' =
+  import.meta.env.VITE_BACKEND === 'local' || import.meta.env.MODE === 'local' ? 'local' : 'remote';
+const api: Backend = BACKEND_MODE === 'local' ? localApi : remoteApi;
 
 const CACHE_KEY = 'nostimos-cache-v1';
 
@@ -66,6 +74,7 @@ class AppStore {
   dayLabels = $state<DayLabel[]>([]);
   plan = $state<MealPlanEntry[]>([]);
 
+  readonly mode = BACKEND_MODE;
   online = $state(true);
   syncing = $state(false);
   lastError = $state<string | null>(null);

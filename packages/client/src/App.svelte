@@ -28,14 +28,18 @@
     <h1><span class="brand">Nostimos</span> · Family Meals</h1>
     <div class="sync">
       <span class="dot" class:off={!store.online}></span>
-      {#if store.syncing}
+      {#if store.mode === 'local'}
+        saved on this device
+      {:else if store.syncing}
         syncing…
       {:else if store.online}
         synced
       {:else}
         offline (showing cached)
       {/if}
-      <button class="ghost" onclick={() => store.refresh()} disabled={store.syncing} title="Refresh from server">↻</button>
+      {#if store.mode === 'remote'}
+        <button class="ghost" onclick={() => store.refresh()} disabled={store.syncing} title="Refresh from server">↻</button>
+      {/if}
     </div>
   </header>
 

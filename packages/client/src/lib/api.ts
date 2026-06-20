@@ -94,3 +94,10 @@ export const api = {
   updateEntry: (id: string, patch: MealPlanEntryUpdate) => request<MealPlanEntry>('PUT', `/plan/${id}`, patch),
   deleteEntry: (id: string) => request<void>('DELETE', `/plan/${id}`),
 };
+
+/**
+ * The shape of a Nostimos backend. The remote `api` (above) is the default
+ * implementation; `localApi` (local-store.ts) is a browser-only implementation
+ * backed by localStorage for standalone / static deployments.
+ */
+export type Backend = typeof api;

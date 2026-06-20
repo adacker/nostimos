@@ -53,7 +53,12 @@ optional `issues`. Transport failures surface as the native `TypeError` from
 
 ## Implementing Files
 
-- `packages/client/src/lib/api.ts`
+The `Backend` type (exported from `api.ts`) is the interface; there are two
+implementations selected at build time by the store (`VITE_BACKEND`):
+
+- `packages/client/src/lib/api.ts` — remote implementation (`fetch` over REST) + the `Backend` type
+- `packages/client/src/lib/local-store.ts` — browser-only implementation backed by `localStorage`
+  (used for the standalone / static here.now build; single device, no sync)
 
 ## Test Requirements
 
