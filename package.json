@@ -1,0 +1,25 @@
+{
+  "name": "nostimos",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Nostimos — a local-first family meal planning app (recipes, dishes, menus, weekly/monthly meal plans).",
+  "type": "module",
+  "workspaces": [
+    "packages/shared",
+    "packages/server",
+    "packages/client"
+  ],
+  "engines": {
+    "node": ">=22.5"
+  },
+  "scripts": {
+    "dev": "npm run dev --workspace @nostimos/server & npm run dev --workspace @nostimos/client",
+    "dev:server": "npm run dev --workspace @nostimos/server",
+    "dev:client": "npm run dev --workspace @nostimos/client",
+    "build": "npm run build --workspace @nostimos/shared && npm run build --workspace @nostimos/server && npm run build --workspace @nostimos/client",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "lint": "npm run typecheck",
+    "ci": "scripts/ci-check.sh"
+  }
+}

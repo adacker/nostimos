@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "rebar-ask": {
+      "command": "/Users/Alyssa/dev/rebar/bin/ask-mcp-server",
+      "args": ["--stdio", "--repos-dir", "/Users/Alyssa/dev"]
+    }
+  }
+}

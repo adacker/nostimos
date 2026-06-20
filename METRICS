@@ -1,0 +1,19 @@
+# Nostimos — Ground Truth Metrics
+
+<!-- freshness: 2026-06-20 -->
+
+Numbers here are verified against the codebase by scripts/check-ground-truth.sh.
+When they drift from reality, CI fails. Update this file (and re-run the check)
+whenever you add a contract, a route module, or a server test file.
+
+## Counts
+
+contracts = 8
+server_test_files = 4
+api_route_modules = 5
+
+## Notes
+
+- `contracts` — files matching architecture/CONTRACT-*.md (excluding TEMPLATE/REGISTRY).
+- `server_test_files` — packages/server/test/*.test.ts (21 test cases at last count).
+- `api_route_modules` — packages/server/src/routes/*.ts excluding the shared http.ts helper.
