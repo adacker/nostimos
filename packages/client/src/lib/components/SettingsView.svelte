@@ -4,7 +4,7 @@
   const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
   let labelName = $state('');
-  let labelColor = $state('#c2562f');
+  let labelColor = $state('#1e3a5f');
   let categoryName = $state('');
   let dayWeekday = $state(2);
   let dayLabelText = $state('');
