@@ -6,6 +6,13 @@ Active tasks only. Priorities live in QUICKCONTEXT.md "What's Next."
 
 ## Open Items
 
+### recipe-search
+- [ ] Recipe search feature (next up). Search recipes by title/ingredients/notes,
+      and ideally filter by dish label (cuisine) + category. Start with a
+      client-side filter over `store.recipes` in the Recipes view (works in the
+      browser-local build too); add a `GET /api/recipes?q=` server endpoint
+      (SQL LIKE/FTS) + matching `local-store.ts` filter if it needs to scale.
+
 ### client-tests
 - [ ] Add client unit tests for `C2-API-CLIENT` (envelope → `ApiError`, `204` → `undefined`)
       and `C3-STORE` (cache hydration, mutation updates state+cache, offline sets `lastError`),
