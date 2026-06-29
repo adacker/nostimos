@@ -1,6 +1,6 @@
 # CONTRACT-C1-APP.1.0
 
-<!-- freshness: 2026-06-20 -->
+<!-- freshness: 2026-06-28 -->
 
 **Version:** 1.0
 **Status:** active
@@ -36,6 +36,7 @@ mount(App, { target: #app })
 | Sync indicator | Shows synced / syncing / offline from store status |
 | Offline banner | Shown when `!online` and there is a `lastError` |
 | Tab routing | Renders exactly one feature view at a time |
+| Cover images | Recipe + dish cards show a cover image when set; their forms offer a file picker with live preview and a remove action (upload happens on save via `C3-STORE`) |
 
 ## Error Contracts
 
@@ -61,3 +62,4 @@ Verified manually today via the dev server; component tests are tracked in TODO.
 | Version | Date | Change | Migration |
 |---------|------|--------|-----------|
 | 1.0 | 2026-06-20 | Initial app shell + 5 views | — |
+| 1.0 | 2026-06-28 | Recipe + dish cards/forms show and edit a cover image | Additive |

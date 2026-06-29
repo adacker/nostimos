@@ -1,6 +1,6 @@
 # CONTRACT-I1-DOMAIN.1.0
 
-<!-- freshness: 2026-06-20 -->
+<!-- freshness: 2026-06-28 -->
 
 **Version:** 1.0
 **Status:** active
@@ -24,8 +24,8 @@ so both sides agree on what a "dish" or a "meal plan entry" is.
 Zod schemas with inferred TypeScript types, exported from `packages/shared/src/types.ts`:
 
 ```ts
-Recipe        { id, title, ingredients, steps, notes, rating: 1..5|null, sourceUrl: url|null, createdAt, updatedAt }
-Dish          { id, name, categoryId|null, labelIds[], recipeIds[], notes, createdAt, updatedAt }
+Recipe        { id, title, ingredients, steps, notes, rating: 1..5|null, sourceUrl: url|null, image: string|null, createdAt, updatedAt }
+Dish          { id, name, categoryId|null, labelIds[], recipeIds[], notes, image: string|null, createdAt, updatedAt }
 DishLabel     { id, name, color: #rrggbb|null }
 DishCategory  { id, name }
 Menu          { id, name, dishIds[], notes, createdAt, updatedAt }
@@ -44,6 +44,7 @@ DayLabel      { id, weekday: 0..6, label, createdAt }
 | `date` fields | Must match `^\d{4}-\d{2}-\d{2}$` |
 | `*Create` defaults | Optional string fields default to `''`, arrays to `[]` |
 | `Menu.name` | Optional; empty string means "unnamed" |
+| `Recipe`/`Dish` `image` | Cover-image URL or `null` (default). A served path (`/api/uploads/…`) in remote mode or a `data:` URL in browser-local mode; plain string, not `.url()`, so both pass. Set via dedicated `C2-API-CLIENT` upload methods, not a plain field edit. |
 
 ## Error Contracts
 
@@ -70,3 +71,4 @@ Tests: `packages/server/test/domain.test.ts`.
 | Version | Date | Change | Migration |
 |---------|------|--------|-----------|
 | 1.0 | 2026-06-20 | Initial domain model (v1 scope: recipes, dishes, menus, plan) | — |
+| 1.0 | 2026-06-28 | Added nullable `image` cover field to `Recipe` and `Dish` | Additive; defaults to `null`, existing data unaffected |

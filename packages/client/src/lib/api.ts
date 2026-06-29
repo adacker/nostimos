@@ -22,6 +22,7 @@ import type {
   DayLabel,
   DayLabelCreate,
 } from '@nostimos/shared';
+import { compressImage } from './image.js';
 
 const BASE = '/api';
 
@@ -52,6 +53,21 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   return data as T;
 }
 
+/** Compress `file` in the browser and POST it as multipart to an image endpoint. */
+async function uploadImage<T>(path: string, file: File): Promise<T> {
+  const blob = await compressImage(file);
+  const form = new FormData();
+  form.append('image', blob, 'image.jpg');
+  const res = await fetch(`${BASE}${path}`, { method: 'POST', body: form });
+  const text = await res.text();
+  const data = text ? JSON.parse(text) : undefined;
+  if (!res.ok) {
+    const msg = (data && (data.error as string)) || `upload failed (${res.status})`;
+    throw new ApiError(res.status, msg, data?.issues);
+  }
+  return data as T;
+}
+
 export const api = {
   health: () => request<{ status: string }>('GET', '/health'),
 
@@ -61,12 +77,16 @@ export const api = {
   importRecipe: (text: string) => request<Recipe>('POST', '/recipes/import', { text }),
   updateRecipe: (id: string, patch: RecipeUpdate) => request<Recipe>('PUT', `/recipes/${id}`, patch),
   deleteRecipe: (id: string) => request<void>('DELETE', `/recipes/${id}`),
+  setRecipeImage: (id: string, file: File) => uploadImage<Recipe>(`/recipes/${id}/image`, file),
+  clearRecipeImage: (id: string) => request<Recipe>('DELETE', `/recipes/${id}/image`),
 
   // Dishes
   listDishes: () => request<Dish[]>('GET', '/dishes'),
   createDish: (d: DishCreate) => request<Dish>('POST', '/dishes', d),
   updateDish: (id: string, patch: DishUpdate) => request<Dish>('PUT', `/dishes/${id}`, patch),
   deleteDish: (id: string) => request<void>('DELETE', `/dishes/${id}`),
+  setDishImage: (id: string, file: File) => uploadImage<Dish>(`/dishes/${id}/image`, file),
+  clearDishImage: (id: string) => request<Dish>('DELETE', `/dishes/${id}/image`),
 
   // Menus
   listMenus: () => request<Menu[]>('GET', '/menus'),

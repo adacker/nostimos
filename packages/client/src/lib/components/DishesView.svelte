@@ -6,26 +6,54 @@
   let showForm = $state(false);
   let editing = $state<Dish | null>(null);
 
-  const blank = (): DishCreate => ({ name: '', categoryId: null, labelIds: [], recipeIds: [], notes: '' });
+  // Cover-image form state: a newly picked file, a "remove" flag, and a preview URL.
+  let imageFile = $state<File | null>(null);
+  let imageCleared = $state(false);
+  let imagePreview = $state<string | null>(null);
+
+  const blank = (): DishCreate => ({ name: '', categoryId: null, labelIds: [], recipeIds: [], notes: '', image: null });
   let form = $state<DishCreate>(blank());
+
+  function resetImage(preview: string | null) {
+    if (imagePreview && imagePreview.startsWith('blob:')) URL.revokeObjectURL(imagePreview);
+    imageFile = null;
+    imageCleared = false;
+    imagePreview = preview;
+  }
 
   function openNew() {
     editing = null;
     form = blank();
+    resetImage(null);
     showForm = true;
   }
   function openEdit(d: Dish) {
     editing = d;
-    form = { name: d.name, categoryId: d.categoryId, labelIds: [...d.labelIds], recipeIds: [...d.recipeIds], notes: d.notes };
+    form = { name: d.name, categoryId: d.categoryId, labelIds: [...d.labelIds], recipeIds: [...d.recipeIds], notes: d.notes, image: d.image };
+    resetImage(d.image);
     showForm = true;
   }
   function toggle(list: string[], id: string): string[] {
     return list.includes(id) ? list.filter((x) => x !== id) : [...list, id];
   }
+  function onImagePick(e: Event) {
+    const file = (e.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+    if (imagePreview && imagePreview.startsWith('blob:')) URL.revokeObjectURL(imagePreview);
+    imageFile = file;
+    imageCleared = false;
+    imagePreview = URL.createObjectURL(file);
+  }
+  function removeImage() {
+    resetImage(null);
+    imageCleared = true;
+  }
   async function save() {
     if (!form.name.trim()) return;
-    if (editing) await store.editDish(editing.id, form);
-    else await store.addDish(form);
+    const saved = editing ? await store.editDish(editing.id, form) : await store.addDish(form);
+    if (!saved) return; // offline / error — keep the form open
+    if (imageFile) await store.setDishImage(saved.id, imageFile);
+    else if (imageCleared && editing?.image) await store.clearDishImage(saved.id);
     if (store.online) showForm = false;
   }
 </script>
@@ -43,6 +71,9 @@
   <div class="grid">
     {#each store.dishes as d (d.id)}
       <div class="card">
+        {#if d.image}
+          <img class="cover" src={d.image} alt={d.name} loading="lazy" />
+        {/if}
         <h3>{d.name}</h3>
         <div class="row">
           {#if d.categoryId}<span class="chip cat">{store.categoryById(d.categoryId)?.name ?? '—'}</span>{/if}
@@ -94,6 +125,15 @@
         {/each}
       </div>
     {/if}
+
+    <div class="field" style="margin-top:0.75rem">
+      <span>Cover photo</span>
+      {#if imagePreview}<img class="preview" src={imagePreview} alt="cover preview" />{/if}
+      <div class="row">
+        <input type="file" accept="image/*" onchange={onImagePick} />
+        {#if imagePreview}<button type="button" class="ghost danger" onclick={removeImage}>Remove photo</button>{/if}
+      </div>
+    </div>
 
     <label class="field" style="margin-top:0.75rem"><span>Notes</span><textarea rows="2" bind:value={form.notes}></textarea></label>
     <div class="modal-actions">

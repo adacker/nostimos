@@ -9,25 +9,54 @@
   let importing = $state(false);
   let importText = $state('');
 
-  const blank = (): RecipeCreate => ({ title: '', ingredients: '', steps: '', notes: '', rating: null, sourceUrl: null });
+  // Cover-image form state: a newly picked file, a "remove" flag, and a preview URL.
+  let imageFile = $state<File | null>(null);
+  let imageCleared = $state(false);
+  let imagePreview = $state<string | null>(null);
+
+  const blank = (): RecipeCreate => ({ title: '', ingredients: '', steps: '', notes: '', rating: null, sourceUrl: null, image: null });
   let form = $state<RecipeCreate>(blank());
+
+  function resetImage(preview: string | null) {
+    if (imagePreview && imagePreview.startsWith('blob:')) URL.revokeObjectURL(imagePreview);
+    imageFile = null;
+    imageCleared = false;
+    imagePreview = preview;
+  }
 
   function openNew() {
     editing = null;
     form = blank();
+    resetImage(null);
     showForm = true;
   }
   function openEdit(r: Recipe) {
     editing = r;
-    form = { title: r.title, ingredients: r.ingredients, steps: r.steps, notes: r.notes, rating: r.rating, sourceUrl: r.sourceUrl };
+    form = { title: r.title, ingredients: r.ingredients, steps: r.steps, notes: r.notes, rating: r.rating, sourceUrl: r.sourceUrl, image: r.image };
+    resetImage(r.image);
     showForm = true;
+  }
+
+  function onImagePick(e: Event) {
+    const file = (e.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+    if (imagePreview && imagePreview.startsWith('blob:')) URL.revokeObjectURL(imagePreview);
+    imageFile = file;
+    imageCleared = false;
+    imagePreview = URL.createObjectURL(file);
+  }
+  function removeImage() {
+    resetImage(null);
+    imageCleared = true;
   }
 
   async function save() {
     if (!form.title.trim()) return;
     const payload: RecipeCreate = { ...form, sourceUrl: form.sourceUrl?.trim() ? form.sourceUrl.trim() : null };
-    if (editing) await store.editRecipe(editing.id, payload);
-    else await store.addRecipe(payload);
+    const saved = editing ? await store.editRecipe(editing.id, payload) : await store.addRecipe(payload);
+    if (!saved) return; // offline / error — keep the form open so nothing is lost
+    if (imageFile) await store.setRecipeImage(saved.id, imageFile);
+    else if (imageCleared && editing?.image) await store.clearRecipeImage(saved.id);
     if (store.online) showForm = false;
   }
 
@@ -62,6 +91,9 @@
   <div class="grid">
     {#each store.recipes as r (r.id)}
       <div class="card">
+        {#if r.image}
+          <img class="cover" src={r.image} alt={r.title} loading="lazy" />
+        {/if}
         <h3>{r.title}</h3>
         <div class="row">
           <StarRating value={r.rating} readonly />
@@ -84,6 +116,14 @@
     <label class="field"><span>Steps</span><textarea rows="5" bind:value={form.steps}></textarea></label>
     <label class="field"><span>Notes</span><textarea rows="2" bind:value={form.notes}></textarea></label>
     <label class="field"><span>Inspiration link</span><input bind:value={form.sourceUrl} placeholder="https://…" /></label>
+    <div class="field">
+      <span>Cover photo</span>
+      {#if imagePreview}<img class="preview" src={imagePreview} alt="cover preview" />{/if}
+      <div class="row">
+        <input type="file" accept="image/*" onchange={onImagePick} />
+        {#if imagePreview}<button type="button" class="ghost danger" onclick={removeImage}>Remove photo</button>{/if}
+      </div>
+    </div>
     <label class="field"
       ><span>Rating</span><StarRating value={form.rating} onchange={(v) => (form.rating = v)} /></label
     >

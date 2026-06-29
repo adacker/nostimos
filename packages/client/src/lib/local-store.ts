@@ -22,6 +22,7 @@ import {
   type DayLabel,
 } from '@nostimos/shared';
 import type { Backend } from './api.js';
+import { compressImage, blobToDataUrl } from './image.js';
 
 const KEY = 'nostimos-local-v1';
 
@@ -87,6 +88,22 @@ export const localApi: Backend = {
     tx((d) => {
       d.recipes = d.recipes.filter((x) => x.id !== id);
     }),
+  setRecipeImage: async (id, file) => {
+    const image = await blobToDataUrl(await compressImage(file));
+    return tx((d) => {
+      const i = d.recipes.findIndex((x) => x.id === id);
+      if (i < 0) throw new Error('recipe not found');
+      d.recipes[i] = { ...d.recipes[i]!, image, updatedAt: now() };
+      return d.recipes[i]!;
+    });
+  },
+  clearRecipeImage: (id) =>
+    tx((d) => {
+      const i = d.recipes.findIndex((x) => x.id === id);
+      if (i < 0) throw new Error('recipe not found');
+      d.recipes[i] = { ...d.recipes[i]!, image: null, updatedAt: now() };
+      return d.recipes[i]!;
+    }),
 
   // ── Dishes ──
   listDishes: () => Promise.resolve(load().dishes),
@@ -106,6 +123,22 @@ export const localApi: Backend = {
   deleteDish: (id) =>
     tx((d) => {
       d.dishes = d.dishes.filter((x) => x.id !== id);
+    }),
+  setDishImage: async (id, file) => {
+    const image = await blobToDataUrl(await compressImage(file));
+    return tx((d) => {
+      const i = d.dishes.findIndex((x) => x.id === id);
+      if (i < 0) throw new Error('dish not found');
+      d.dishes[i] = { ...d.dishes[i]!, image, updatedAt: now() };
+      return d.dishes[i]!;
+    });
+  },
+  clearDishImage: (id) =>
+    tx((d) => {
+      const i = d.dishes.findIndex((x) => x.id === id);
+      if (i < 0) throw new Error('dish not found');
+      d.dishes[i] = { ...d.dishes[i]!, image: null, updatedAt: now() };
+      return d.dishes[i]!;
     }),
 
   // ── Menus ──

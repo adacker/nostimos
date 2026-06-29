@@ -5,10 +5,11 @@ import type { FastifyInstance } from 'fastify';
 import { RecipeCreate, RecipeUpdate, parseRecipeText } from '@nostimos/shared';
 import type { Store } from '../db.js';
 import { parseBody, notFound } from './http.js';
+import { registerImageRoutes, removeImageFile } from './images.js';
 
 const ImportBody = z.object({ text: z.string().min(1) });
 
-export function registerRecipeRoutes(app: FastifyInstance, store: Store): void {
+export function registerRecipeRoutes(app: FastifyInstance, store: Store, uploadsDir: string): void {
   app.get('/api/recipes', async () => store.listRecipes());
 
   app.post('/api/recipes', async (req, reply) => {
@@ -40,8 +41,17 @@ export function registerRecipeRoutes(app: FastifyInstance, store: Store): void {
 
   app.delete('/api/recipes/:id', async (req, reply) => {
     const { id } = req.params as { id: string };
-    if (!store.deleteRecipe(id)) return notFound(reply, 'recipe');
+    const existing = store.getRecipe(id);
+    if (!existing || !store.deleteRecipe(id)) return notFound(reply, 'recipe');
+    removeImageFile(uploadsDir, existing.image); // don't orphan the cover file
     reply.code(204);
     return null;
+  });
+
+  registerImageRoutes(app, uploadsDir, {
+    basePath: '/api/recipes',
+    name: 'recipe',
+    get: (id) => store.getRecipe(id),
+    setImage: (id, image) => store.updateRecipe(id, { image }),
   });
 }

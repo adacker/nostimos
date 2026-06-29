@@ -5,8 +5,9 @@ import type { FastifyInstance } from 'fastify';
 import { DishCreate, DishUpdate } from '@nostimos/shared';
 import type { Store } from '../db.js';
 import { parseBody, notFound } from './http.js';
+import { registerImageRoutes, removeImageFile } from './images.js';
 
-export function registerDishRoutes(app: FastifyInstance, store: Store): void {
+export function registerDishRoutes(app: FastifyInstance, store: Store, uploadsDir: string): void {
   app.get('/api/dishes', async () => store.listDishes());
 
   app.post('/api/dishes', async (req, reply) => {
@@ -30,8 +31,17 @@ export function registerDishRoutes(app: FastifyInstance, store: Store): void {
 
   app.delete('/api/dishes/:id', async (req, reply) => {
     const { id } = req.params as { id: string };
-    if (!store.deleteDish(id)) return notFound(reply, 'dish');
+    const existing = store.getDish(id);
+    if (!existing || !store.deleteDish(id)) return notFound(reply, 'dish');
+    removeImageFile(uploadsDir, existing.image); // don't orphan the cover file
     reply.code(204);
     return null;
+  });
+
+  registerImageRoutes(app, uploadsDir, {
+    basePath: '/api/dishes',
+    name: 'dish',
+    get: (id) => store.getDish(id),
+    setImage: (id, image) => store.updateDish(id, { image }),
   });
 }

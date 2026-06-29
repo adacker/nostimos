@@ -12,6 +12,8 @@
   },
   "dependencies": {
     "@fastify/cors": "^10.0.1",
+    "@fastify/multipart": "^9.4.0",
+    "@fastify/static": "^9.1.3",
     "@nostimos/shared": "*",
     "fastify": "^5.1.0",
     "zod": "^3.23.8"
