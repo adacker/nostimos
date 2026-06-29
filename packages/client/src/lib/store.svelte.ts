@@ -182,6 +182,20 @@ class AppStore {
       this.recipes = this.recipes.filter((x) => x.id !== id);
     });
   }
+  setRecipeImage(id: string, file: File) {
+    return this.run(async () => {
+      const updated = await api.setRecipeImage(id, file);
+      this.recipes = this.recipes.map((x) => (x.id === id ? updated : x)).sort(byTitle);
+      return updated;
+    });
+  }
+  clearRecipeImage(id: string) {
+    return this.run(async () => {
+      const updated = await api.clearRecipeImage(id);
+      this.recipes = this.recipes.map((x) => (x.id === id ? updated : x)).sort(byTitle);
+      return updated;
+    });
+  }
 
   // ── Dishes ──
   addDish(d: DishCreate) {
@@ -202,6 +216,20 @@ class AppStore {
     return this.run(async () => {
       await api.deleteDish(id);
       this.dishes = this.dishes.filter((x) => x.id !== id);
+    });
+  }
+  setDishImage(id: string, file: File) {
+    return this.run(async () => {
+      const updated = await api.setDishImage(id, file);
+      this.dishes = this.dishes.map((x) => (x.id === id ? updated : x)).sort(byName);
+      return updated;
+    });
+  }
+  clearDishImage(id: string) {
+    return this.run(async () => {
+      const updated = await api.clearDishImage(id);
+      this.dishes = this.dishes.map((x) => (x.id === id ? updated : x)).sort(byName);
+      return updated;
     });
   }
 

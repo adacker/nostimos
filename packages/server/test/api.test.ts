@@ -1,13 +1,36 @@
 // CONTRACT:S1-API.1.0
 // CONTRACT:P1-API-PROTOCOL.1.0
 import { describe, it, expect, afterEach } from 'vitest';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { join } from 'node:path';
+import { tmpdir } from 'node:os';
 import type { FastifyInstance } from 'fastify';
 import { buildApp } from '../src/app.js';
 
 let app: FastifyInstance;
+let uploadsDir: string | undefined;
 afterEach(async () => {
   await app?.close();
+  if (uploadsDir) rmSync(uploadsDir, { recursive: true, force: true });
+  uploadsDir = undefined;
 });
+
+// A 1×1 PNG, the smallest valid image payload for upload tests.
+const PNG_1X1 = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
+  'base64',
+);
+
+/** Build a multipart/form-data body for a single `image` file part. */
+function imageMultipart(buf: Buffer, filename: string, contentType: string) {
+  const boundary = '----nostimostestboundary';
+  const head = Buffer.from(
+    `--${boundary}\r\nContent-Disposition: form-data; name="image"; filename="${filename}"\r\n` +
+      `Content-Type: ${contentType}\r\n\r\n`,
+  );
+  const tail = Buffer.from(`\r\n--${boundary}--\r\n`);
+  return { payload: Buffer.concat([head, buf, tail]), contentType: `multipart/form-data; boundary=${boundary}` };
+}
 
 describe('HTTP API (S1-API / P1-API-PROTOCOL)', () => {
   it('health check responds ok', async () => {
@@ -66,6 +89,59 @@ describe('HTTP API (S1-API / P1-API-PROTOCOL)', () => {
       payload: { date: '2026-06-20', slot: 'dinner', dishId: '44444444-4444-4444-4444-444444444444', menuId: '55555555-5555-5555-5555-555555555555' },
     });
     expect(res.statusCode).toBe(400);
+  });
+
+  it('uploads, serves, and clears a recipe cover image', async () => {
+    uploadsDir = mkdtempSync(join(tmpdir(), 'nostimos-up-'));
+    app = buildApp({ uploadsDir });
+    const recipe = (
+      await app.inject({
+        method: 'POST',
+        url: '/api/recipes',
+        payload: { title: 'Souvlaki', ingredients: '', steps: '', notes: '', rating: null, sourceUrl: null },
+      })
+    ).json();
+    expect(recipe.image).toBeNull();
+
+    const { payload, contentType } = imageMultipart(PNG_1X1, 'cover.png', 'image/png');
+    const upload = await app.inject({
+      method: 'POST',
+      url: `/api/recipes/${recipe.id}/image`,
+      headers: { 'content-type': contentType },
+      payload,
+    });
+    expect(upload.statusCode).toBe(200);
+    const url = upload.json().image as string;
+    expect(url.startsWith('/api/uploads/')).toBe(true);
+
+    // The uploaded file is served back over the same /api prefix.
+    const served = await app.inject({ method: 'GET', url });
+    expect(served.statusCode).toBe(200);
+    expect(served.headers['content-type']).toContain('image/png');
+
+    const cleared = await app.inject({ method: 'DELETE', url: `/api/recipes/${recipe.id}/image` });
+    expect(cleared.statusCode).toBe(200);
+    expect(cleared.json().image).toBeNull();
+  });
+
+  it('rejects a non-image upload with 415', async () => {
+    uploadsDir = mkdtempSync(join(tmpdir(), 'nostimos-up-'));
+    app = buildApp({ uploadsDir });
+    const recipe = (
+      await app.inject({
+        method: 'POST',
+        url: '/api/recipes',
+        payload: { title: 'X', ingredients: '', steps: '', notes: '', rating: null, sourceUrl: null },
+      })
+    ).json();
+    const { payload, contentType } = imageMultipart(Buffer.from('not an image'), 'note.txt', 'text/plain');
+    const res = await app.inject({
+      method: 'POST',
+      url: `/api/recipes/${recipe.id}/image`,
+      headers: { 'content-type': contentType },
+      payload,
+    });
+    expect(res.statusCode).toBe(415);
   });
 
   it('creates and ranges meal-plan entries', async () => {

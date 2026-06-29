@@ -1,6 +1,6 @@
 # CONTRACT-C3-STORE.1.0
 
-<!-- freshness: 2026-06-20 -->
+<!-- freshness: 2026-06-28 -->
 
 **Version:** 1.0
 **Status:** active
@@ -27,6 +27,7 @@ store.recipes / dishes / menus / labels / categories / dayLabels / plan  // $sta
 store.online / syncing / lastError / lastSyncedAt                        // status
 store.refresh()                                                          // pull all
 store.add*/edit*/remove* (recipes, dishes, menus, labels, categories, dayLabels, entries)
+store.set{Recipe,Dish}Image(id, file) / clear{Recipe,Dish}Image(id)         // cover images
 store.recipeById / dishById / menuById / labelById / categoryById
 ```
 
@@ -40,6 +41,7 @@ store.recipeById / dishById / menuById / labelById / categoryById
 | Offline read | Cached data remains visible when the server is unreachable |
 | Error surface | `lastError` set on failure; `online=false` on transport (`TypeError`) failure |
 | Sorting | Recipes by title, dishes/labels/categories by name |
+| Image mutators | `set/clear*Image` go through the same server-first `run()` path as other writes; the returned entity (with new `image`) replaces the item in state + cache |
 
 ## Error Contracts
 
@@ -69,3 +71,4 @@ schema migration.
 | Version | Date | Change | Migration |
 |---------|------|--------|-----------|
 | 1.0 | 2026-06-20 | Initial local-first store | — |
+| 1.0 | 2026-06-28 | Added `set/clear` image mutators for recipes + dishes | Additive |

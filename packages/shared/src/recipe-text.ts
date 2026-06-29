@@ -69,5 +69,6 @@ export function parseRecipeText(raw: string): RecipeCreate {
     notes: join(sections.notes),
     rating: null,
     sourceUrl,
+    image: null,
   };
 }

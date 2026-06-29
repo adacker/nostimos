@@ -1,6 +1,6 @@
 # TODO
 
-<!-- last-synced: 2026-06-20 -->
+<!-- last-synced: 2026-06-28 -->
 
 Active tasks only. Priorities live in QUICKCONTEXT.md "What's Next."
 
@@ -30,7 +30,8 @@ Active tasks only. Priorities live in QUICKCONTEXT.md "What's Next."
 
 ## Known Issues & Blockers
 
-- `npm audit` reports advisories in the dev dependency tree (Vite/tooling). Triage before any deploy.
+- `npm audit` reports advisories in the dev dependency tree (Vite/tooling): 4 moderate, 1 high,
+  1 critical, all dev-only. Runtime deps are clean (0). Triage the dev tree before any deploy.
 
 <details>
 <summary><strong>Completed</strong></summary>
@@ -41,5 +42,6 @@ Active tasks only. Priorities live in QUICKCONTEXT.md "What's Next."
 - [x] Server: SQLite store + Fastify REST API + 21 tests — 2026-06-20
 - [x] Client: Svelte 5 SPA (recipes/dishes/menus + meal-plan calendar) — 2026-06-20
 - [x] 8 rebar contracts + registry — 2026-06-20
+- [x] Recipe + dish cover images (hybrid: server files / data URLs), upload + clear — 2026-06-28
 
 </details>

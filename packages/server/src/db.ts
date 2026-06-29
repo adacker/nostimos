@@ -40,6 +40,7 @@ CREATE TABLE IF NOT EXISTS recipes (
   notes TEXT NOT NULL DEFAULT '',
   rating INTEGER,
   source_url TEXT,
+  image TEXT,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
 );
@@ -59,6 +60,7 @@ CREATE TABLE IF NOT EXISTS dishes (
   label_ids TEXT NOT NULL DEFAULT '[]',
   recipe_ids TEXT NOT NULL DEFAULT '[]',
   notes TEXT NOT NULL DEFAULT '',
+  image TEXT,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
 );
@@ -91,6 +93,12 @@ CREATE TABLE IF NOT EXISTS day_labels (
 
 const now = () => new Date().toISOString();
 
+/** Columns added after v1; applied to DBs created before the column existed. */
+const MIGRATIONS: ReadonlyArray<[table: string, column: string, ddl: string]> = [
+  ['recipes', 'image', 'ALTER TABLE recipes ADD COLUMN image TEXT'],
+  ['dishes', 'image', 'ALTER TABLE dishes ADD COLUMN image TEXT'],
+];
+
 type Row = Record<string, unknown>;
 const asInt = (v: unknown): number | null => (v === null || v === undefined ? null : Number(v));
 const asArr = (v: unknown): string[] => {
@@ -111,6 +119,7 @@ function toRecipe(r: Row): Recipe {
     notes: String(r.notes ?? ''),
     rating: asInt(r.rating),
     sourceUrl: r.source_url === null || r.source_url === undefined ? null : String(r.source_url),
+    image: r.image === null || r.image === undefined ? null : String(r.image),
     createdAt: String(r.created_at),
     updatedAt: String(r.updated_at),
   };
@@ -123,6 +132,7 @@ function toDish(r: Row): Dish {
     labelIds: asArr(r.label_ids),
     recipeIds: asArr(r.recipe_ids),
     notes: String(r.notes ?? ''),
+    image: r.image === null || r.image === undefined ? null : String(r.image),
     createdAt: String(r.created_at),
     updatedAt: String(r.updated_at),
   };
@@ -152,12 +162,22 @@ function toEntry(r: Row): MealPlanEntry {
 
 /** Typed, synchronous data store. One instance owns one SQLite connection. */
 export class Store {
-  private db: DatabaseSync;
+  // DatabaseSync is a destructured value binding, so reference it via InstanceType.
+  private db: InstanceType<typeof DatabaseSync>;
 
   constructor(path = ':memory:') {
     this.db = new DatabaseSync(path);
     this.db.exec('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;');
     this.db.exec(SCHEMA);
+    this.migrate();
+  }
+
+  /** Idempotently add columns introduced after a DB was first created. */
+  private migrate(): void {
+    for (const [table, column, ddl] of MIGRATIONS) {
+      const cols = this.db.prepare(`PRAGMA table_info(${table})`).all() as Row[];
+      if (!cols.some((c) => String(c.name) === column)) this.db.exec(ddl);
+    }
   }
 
   close(): void {
@@ -177,10 +197,10 @@ export class Store {
     const ts = now();
     this.db
       .prepare(
-        `INSERT INTO recipes (id, title, ingredients, steps, notes, rating, source_url, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO recipes (id, title, ingredients, steps, notes, rating, source_url, image, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
-      .run(id, input.title, input.ingredients, input.steps, input.notes, input.rating, input.sourceUrl, ts, ts);
+      .run(id, input.title, input.ingredients, input.steps, input.notes, input.rating, input.sourceUrl, input.image, ts, ts);
     return this.getRecipe(id)!;
   }
   updateRecipe(id: string, patch: RecipeUpdate): Recipe | undefined {
@@ -189,9 +209,9 @@ export class Store {
     const next = { ...existing, ...patch };
     this.db
       .prepare(
-        `UPDATE recipes SET title=?, ingredients=?, steps=?, notes=?, rating=?, source_url=?, updated_at=? WHERE id=?`,
+        `UPDATE recipes SET title=?, ingredients=?, steps=?, notes=?, rating=?, source_url=?, image=?, updated_at=? WHERE id=?`,
       )
-      .run(next.title, next.ingredients, next.steps, next.notes, next.rating, next.sourceUrl, now(), id);
+      .run(next.title, next.ingredients, next.steps, next.notes, next.rating, next.sourceUrl, next.image, now(), id);
     return this.getRecipe(id);
   }
   deleteRecipe(id: string): boolean {
@@ -244,10 +264,10 @@ export class Store {
     const ts = now();
     this.db
       .prepare(
-        `INSERT INTO dishes (id, name, category_id, label_ids, recipe_ids, notes, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO dishes (id, name, category_id, label_ids, recipe_ids, notes, image, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
-      .run(id, input.name, input.categoryId, JSON.stringify(input.labelIds), JSON.stringify(input.recipeIds), input.notes, ts, ts);
+      .run(id, input.name, input.categoryId, JSON.stringify(input.labelIds), JSON.stringify(input.recipeIds), input.notes, input.image, ts, ts);
     return this.getDish(id)!;
   }
   updateDish(id: string, patch: DishUpdate): Dish | undefined {
@@ -256,9 +276,9 @@ export class Store {
     const next = { ...existing, ...patch };
     this.db
       .prepare(
-        `UPDATE dishes SET name=?, category_id=?, label_ids=?, recipe_ids=?, notes=?, updated_at=? WHERE id=?`,
+        `UPDATE dishes SET name=?, category_id=?, label_ids=?, recipe_ids=?, notes=?, image=?, updated_at=? WHERE id=?`,
       )
-      .run(next.name, next.categoryId, JSON.stringify(next.labelIds), JSON.stringify(next.recipeIds), next.notes, now(), id);
+      .run(next.name, next.categoryId, JSON.stringify(next.labelIds), JSON.stringify(next.recipeIds), next.notes, next.image, now(), id);
     return this.getDish(id);
   }
   deleteDish(id: string): boolean {

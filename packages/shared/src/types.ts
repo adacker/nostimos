@@ -44,6 +44,12 @@ export const Recipe = z.object({
   notes: z.string().default(''),
   rating,
   sourceUrl: z.string().url().nullable(),
+  /**
+   * Cover image as a URL the UI renders directly. Server (remote) mode stores a
+   * served path like "/api/uploads/<file>"; browser-local mode stores a `data:`
+   * URL. Plain string (not `.url()`) so both relative paths and data URLs pass.
+   */
+  image: z.string().nullable().default(null),
   createdAt: isoDateTime,
   updatedAt: isoDateTime,
 });
@@ -57,6 +63,8 @@ export const Dish = z.object({
   /** Multiple recipe options may satisfy one dish. */
   recipeIds: z.array(z.string().uuid()).default([]),
   notes: z.string().default(''),
+  /** Cover image URL; same dual-mode convention as Recipe.image. */
+  image: z.string().nullable().default(null),
   createdAt: isoDateTime,
   updatedAt: isoDateTime,
 });
